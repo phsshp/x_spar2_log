@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>public</access>
+        <active>true</active>
+        <api_name>x_spar2_log.Logger</api_name>
+        <client_callable>false</client_callable>
+        <description>Provide strictly sequenced logs layered on the default GlideSystem logging function.</description>
+        <name>Logger</name>
+        <script><![CDATA[var Logger = Class.create();
+Logger.prototoype = (function Logger_proto(s) {
+	var p = {};
+	var TYPE = 'Logger';
+
+	// Static cache.  You'll get the same logger if this class is not unloaded.
+	var loggers = {};  // One logger per loggerName
+
+	// Big cutoff switch
+	var disabled = (function() {
+		var name = gs.getCurrentScopeName() + '.Logger.log.disabled';
+		var prop = gs.getProperty(name, 'false');
+		return (prop === 'true');
+	})();
+
+	s.getLogger = function getLogger(loggerName, override) {
+		var pp, loggerKey, cachedLogger;
+
+		if (disabled) return gs;
+
+		loggerName = loggerName || TYPE;
+		pp = new PrefProps(gs.getCallerScopeName(), loggerName + '.log');
+		loggerKey = pp.getPrefix().slice(0, -1);
+
+		cachedLogger = loggers[loggerKey];
+		if (!cachedLogger) {
+			cachedLogger = new SequencedLoggerImp({
+				loggerName:  loggerName,
+				loggerKey:   loggerKey,
+				prefProps:   pp,
+				override:    override // jig for testing
+			});
+			loggers[loggerKey] = cachedLogger;
+		}
+		return cachedLogger;
+	};
+
+	// Remove the cached logger.  It doesn't stop modules that have
+	// a reference from continuing to use it.
+	s.resetLogger = function resetLogger(loggerName) {
+		var pp, loggerKey;
+
+		loggerName = loggerName || TYPE;
+		pp = new PrefProps(gs.getCallerScopeName(), loggerName + '.log');
+		loggerKey = pp.getPrefix().slice(0, -1);
+
+		delete loggers[loggerKey];
+	};
+
+	function makeInfoObject(logger) {
+		return function infoObject(spec, o) {
+			logger.info(new ObjectDump(o).toString());
+		};
+	}
+
+	function makeDebugObject(logger) {
+		if (!logger.isDebugging()) {
+			return function() { };
+		}
+		return function debugObject(spec, o) {
+			logger.info(new ObjectDump(o).toString());
+		};
+	}
+
+	function cloneLogger(logger) {
+		this.error = logger.error;
+		this.warn  = logger.warn;
+		this.info  = logger.info;
+		this.debug = logger.debug;
+		this.isDebugging = logger.isDebugging;
+		this.infoObject =  logger.infoObject || makeInfoObject(logger);
+		this.debugObject = logger.debugObject || makeDebugObject(logger);
+	}
+
+	function initialize(loggerName) {
+		cloneLogger(getLogger(loggerName));
+	}
+	p.initialize = initialize;
+
+	return p;
+})(Logger);  // end Logger_proto
+
+Logger.test = function test() {
+	var SLTEST = 'LoggerTest';
+
+	var	scopePrefix = getScopePrefix(gs.getCallerScopeName());
+	var	loggerName = SLTEST;
+	var	prefProps = scopePrefix + 'sequenced_logger.' + loggerName + '.';
+
+	var sl = Logger;
+	gs.getUser().savePreference(prefProps + 'enabled', 'false');
+
+	var log = sl.getLogger(SLTEST);
+	gs.info('Logger is gs: {0}', log === gs);
+	sl.flushLogger(SLTEST);
+
+	gs.getUser().savePreference(prefProps + 'enabled', 'true');
+	log = sl.getLogger(SLTEST);
+	gs.info('Logger is gs: {0}', log === gs);
+
+	log.debug('debug');
+	log.info('info');
+	log.warn('warn');
+	log.error('error');
+
+	log.debug('debug {0} {1}', 1, "A");
+	log.info('info {0} {1}', 1, "A");
+	log.warn('warn {0} {1}', 1, "A");
+	log.error('error {0} {1}', 1, "A");
+
+	log.debug('debug {0} {1}', [2, "B"]);
+	log.info('info {0} {1}', [2, "B"]);
+	log.warn('warn {0} {1}', [2, "B"]);
+	log.error('error {0} {1}', [2, "B"]);
+
+	// TODO: checkCurrentLevel
+
+	log.info('log.isDebugging()={0}', log.isDebugging());
+	var log2 = Logger.getLogger('notAProperty');
+	log.info('log2.isDebugging()={0}', log2.isDebugging());
+
+	log.infoObject({label: 'o01', maxNest: 5}, 1);
+	log.debugObject({label: 'o02'}, { a: 2 });
+	log.infoObject({label: 'o03'}, { b: 3, c: "x"});
+	log.infoObject({label: 'o04'}, ['a', 'b']);
+	log.infoObject({label: 'o05'}, [
+		{ a: 1, b: 2, c: 3},
+		[ 'x', 'y'],
+		7
+	]);
+
+	// TODO: Array
+	// TODO: maxDepth
+	gs.info('done');
+};]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>peter.smith</sys_created_by>
+        <sys_created_on>2018-06-15 13:55:33</sys_created_on>
+        <sys_id>9246b410dbfa1340d89b596e5e961972</sys_id>
+        <sys_mod_count>2</sys_mod_count>
+        <sys_name>Logger</sys_name>
+        <sys_package display_value="Logger" source="x_spar2_log">3a167010dbfa1340d89b596e5e96190a</sys_package>
+        <sys_policy>read</sys_policy>
+        <sys_scope display_value="Logger">3a167010dbfa1340d89b596e5e96190a</sys_scope>
+        <sys_update_name>sys_script_include_9246b410dbfa1340d89b596e5e961972</sys_update_name>
+        <sys_updated_by>peter.smith</sys_updated_by>
+        <sys_updated_on>2018-06-15 14:19:52</sys_updated_on>
+    </sys_script_include>
+</record_update>

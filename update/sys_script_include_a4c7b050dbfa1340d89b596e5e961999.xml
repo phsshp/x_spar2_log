@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>public</access>
+        <active>true</active>
+        <api_name>x_spar2_log.ObjectDump</api_name>
+        <client_callable>false</client_callable>
+        <description>Dumps an object as a string or to a line output function.  Implemented as a wrapper object with a toString() method.&#13;
+&#13;
+Constructor:  ObjectDump(object, label, spec);&#13;
+&#13;
+object:					The object to format.&#13;
+label:					A name for the object's root level.&#13;
+spec.maxNest:			Maximum nest level (3)&#13;
+spec.maxLines:		Maximum lines (500)&#13;
+spec.maxArray: 		Maximum array values (60)&#13;
+spec.maxString:		Maximum string length (512)&#13;
+spec.maxProperties:	Maximum object fields (120)&#13;
+&#13;
+Example:&#13;
+&#13;
+ var x = { a: 1, b: [2, 3] };&#13;
+ var xd = new x_133792_sl.ObjectDump(x, 'x', { maxLines: 30 });&#13;
+ gs.info(xd.toString());&#13;
+&#13;
+// x_133792_sl: x &lt;object&gt; = (see below)&#13;
+//   a &lt;number&gt; = 1&#13;
+//   b &lt;array&gt; = 2,3&#13;
+//     b[0] &lt;number&gt; = 2&#13;
+//     b[1] &lt;number&gt; = 3&#13;
+&#13;
+ xd.toLines(function(msg) { gs.info(msg); });&#13;
+&#13;
+// x_133792_sl: x &lt;object&gt; = (see below)&#13;
+// x_133792_sl:   a &lt;number&gt; = 1&#13;
+// x_133792_sl:   b &lt;array&gt; = 2,3&#13;
+// x_133792_sl:     b[0] &lt;number&gt; = 2&#13;
+// x_133792_sl:     b[1] &lt;number&gt; = 3&#13;
+&#13;
+TODOS:&#13;
+ - String length limit&#13;
+ - Ellipses&#13;
+ - Object field limit&#13;
+ - Replace &lt;type&gt; with implicit syntax - "", {}, [], 3.7, null, undefined f()&#13;
+ - Close out array.</description>
+        <name>ObjectDump</name>
+        <script><![CDATA[var ObjectDump = Class.create();
+ObjectDump.prototype = (function ObjectDump_proto() {
+	var TYPE = 'ObjectDump';
+	var p = {};
+	var INDENT = '  ';
+
+	function initialize(o, spec) {
+		function processObject(o, spec, output) {
+			var lineBuffer = []; // Array of text snippets for current line.
+			var nestLevel = 0;   // Nesting level
+			var lineCount = 0;   // Total lines output
+			var finished;        // No more lines should be output
+
+			spec = spec || {};
+			var maxNest = spec.maxNest || 3;
+			var maxLines = spec.maxLines || 500;
+			var maxArray = spec.maxArray || 60;
+			var maxString = spec.maxString || 512;
+			var maxProperties = spec.maxProperties || 120;
+			maxstring = Math.max(maxString, 20);
+			visitObject(o);
+			flush();
+			return;
+
+			// Notice when maxLines is reached.
+			function checkFinish() {
+				if (lineCount >= maxLines) {
+					finished = true;
+					return false;
+				}
+				return true;
+			}
+
+			// Automatic indent
+			function autoIndent() {
+				if (lineBuffer.length == 0) {
+					for (var i = 0; i < nestLevel; i++) {
+						lineBuffer.push(INDENT);
+					}
+				}
+			}
+
+			// Add args to line buffer
+			function addArgs(args) {
+				for (var i = 0; i < args.length; i++) {
+					lineBuffer.push(args[i] + '');
+				}
+			}
+
+			// Append arguments to the current line.
+			// Return true if the line limit has not been reached.
+			function print() {
+				if (!checkFinish()) return false;
+				autoIndent();
+				addArgs(arguments);
+				return true;
+			}
+
+			// Append arguments to the current line and end it.
+			// Return true if the line limit has not been reached.
+			function println() {
+				if (!checkFinish()) return false;
+				autoIndent();
+				addArgs(arguments);
+				output(lineBuffer.join(''));
+				lineBuffer = [];
+				lineCount++;
+				return true;
+			}
+
+			// Empty the current buffer.
+			function flush() {
+				if (!checkFinish()) return false;
+				if (lineBuffer.length > 0) {
+					println();
+				}
+				return true;
+			}
+
+			function hasLocalProperty(o) {
+				for (var k in o) {
+					if (o.hasOwnProperty(k)) return true;
+				}
+				return false;
+			}
+
+			function enumProperties(value) {
+				var keys = [];
+				var i, k, v, len, count = 0;
+
+				for (k in value) {
+					if (value.hasOwnProperty(k)) {
+						keys.push(k);
+					}
+				}
+
+				keys.sort();
+
+				len = keys.length;
+				for (i = 0; i < len; i++) {
+					if (i > 0) {
+						if (!println(',')) return false;
+					}
+					if (i >= maxProperties) {
+						return println('"//": "Max properties reached"');
+					}
+
+					k = keys[i];
+					v = value[k];
+
+					if (!print('"', k, '" : ')) return false;
+					visitObject(v);
+				}
+				flush();
+				return true;
+			}
+
+			function printArray(value) {
+				if (nestLevel >= maxNest) {
+					return print('"<<<[...]>>>"');
+				}
+
+				if (value.length == 0) {
+					return print('[]');
+				}
+
+				if (!println('[')) return false;
+
+				nestLevel = nestLevel + 1;
+				try {
+					var len = value.length;
+					for (var i = 0; i < len; i++) {
+						if (i > 0) {
+							if (!println(',')) return false;
+						}
+						if (i >= maxArray) return println('"<<<...>>>"');
+
+						if (!visitObject(value[i])) {
+							return false;
+						}
+					}
+					flush();
+				} finally {
+					nestLevel = nestLevel - 1;
+					return println(']');
+				}
+			}
+
+			function printObject(value) {
+				if (Array.isArray(value)) {
+					return printArray(value);
+				}
+
+				if (nestLevel >= maxNest) {
+					return print('{ "//" : "..." }');
+				}
+
+				if (!hasLocalProperty(value)) {
+					return print('{}');
+				}
+
+				if (!println('{')) return false;
+				try {
+					nestLevel = nestLevel + 1;
+					if (!enumProperties(value)) return false;
+				} finally {
+					nestLevel = nestLevel - 1;
+					return print('}');
+				}
+			}
+
+			function printFunction(value) {
+				if (nestLevel >= maxNest) {
+					return print('"<<<function ', value.name, '()...>>>"');
+				}
+
+				if (!hasLocalProperty(value)) {
+					return print('"<<<function ', value.name, '()>>>"');
+				}
+
+				if (!println('{ "//" : "<<<function ', value.name, '()>>>"')) return false;
+				try {
+					nestLevel = nestLevel + 1;
+					if (!enumProperties(value)) return false;
+				} finally {
+					nestLevel = nestLevel - 1;
+					return println('}');
+				}
+			}
+
+			function printString(value) {
+				var len, half, start, end;
+				value = escape(value);
+				len = value.length;
+				if (len < maxString) {
+					return print('"' + value + '"');
+				} else {
+					half = Math.floor( (len - 9) / 2 );
+					start = value.slice(0, half);
+					end = value.slice(-half);
+					return print('"', start, '<<<...>>>', end, '"');
+				}
+			}
+
+			function visitObject(value) {
+				var status;
+				var type = typeof value;
+
+				switch (type) {
+					case 'boolean':
+						status = print(value ? 'true' : 'false');
+						break;
+					case 'function':
+						status = printFunction(value);
+						break;
+					case 'number':
+						status = print(value);
+						break;
+					case 'object':  // typeof null === 'object'
+						if (value === null) {
+							status = print('null');
+						} else {
+							status = printObject(value);
+						}
+						break;
+					case 'string':
+						status = printString(value);
+						break;
+					case 'symbol':
+						status = print('"', value, '"');
+						break;
+					case 'undefined':
+						status = print('undefined');
+						break;
+					default:  // Should not get here
+						status = print('"<<<UNKNOWN TYPE :', type, '>>>"');
+				}
+				return status;
+			}
+		}
+
+		function toString() {
+			var buffer = [];
+			processObject(o, spec, function(msg) {
+				buffer.push(msg);
+			});
+			return buffer.join('\n');
+		}
+		this.toString = toString;
+
+		function toLines(fn) {
+			processObject(o, spec, fn);
+		}
+		this.toLines = toLines;
+
+	} // End initialize
+	p.initialize = initialize;
+
+	return p;
+})(); // End ObjectDump_proto]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>peter.smith</sys_created_by>
+        <sys_created_on>2018-06-15 14:14:02</sys_created_on>
+        <sys_id>a4c7b050dbfa1340d89b596e5e961999</sys_id>
+        <sys_mod_count>1</sys_mod_count>
+        <sys_name>ObjectDump</sys_name>
+        <sys_package display_value="Logger" source="x_spar2_log">3a167010dbfa1340d89b596e5e96190a</sys_package>
+        <sys_policy>read</sys_policy>
+        <sys_scope display_value="Logger">3a167010dbfa1340d89b596e5e96190a</sys_scope>
+        <sys_update_name>sys_script_include_a4c7b050dbfa1340d89b596e5e961999</sys_update_name>
+        <sys_updated_by>peter.smith</sys_updated_by>
+        <sys_updated_on>2018-06-15 14:19:56</sys_updated_on>
+    </sys_script_include>
+</record_update>
