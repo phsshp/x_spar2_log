@@ -103,18 +103,19 @@ SequencedLoggerImp.prototype = (function SequencedLoggerImp_proto(s) {
 		var loggerKey = spec.loggerKey;
 		var pp = spec.prefProps;
 		var override = spec.override;
+		var defaultLevel = spec.defaultLevel || LEVEL.DEFAULT;
 
-		var level = pp.getValue('level', LEVEL.DEFAULT);
+		var level = pp.getValue('level', defaultLevel);
 		var levels = levelMap[level];
 		if (!levels) {
 			this.errmsg = 'Invalid property ' + pp.getName('level') + '=' + level;
-			level = LEVEL.DEFAULT;
-			levels = levelMap[LEVEL.DEFAULT];
+			level = defaultLevel;
+			levels = levelMap[defaultLevel];
 		}
 
 		this.level = level;
 		this.loggerName = loggerName; // For the Script Debugger
-		this.loggerKey = pp.getPrefix().slice(0, -1);
+		this.loggerKey = pp.getPrefix();
 		this.error = makeLogger(ERROR, loggerName, levels);
 		this.warn =  makeLogger(WARN,  loggerName, levels);
 		this.info =  makeLogger(INFO,  loggerName, levels);
@@ -129,13 +130,13 @@ SequencedLoggerImp.prototype = (function SequencedLoggerImp_proto(s) {
         <sys_created_by>peter.smith</sys_created_by>
         <sys_created_on>2018-06-15 13:59:08</sys_created_on>
         <sys_id>89773050dbfa1340d89b596e5e961909</sys_id>
-        <sys_mod_count>1</sys_mod_count>
+        <sys_mod_count>4</sys_mod_count>
         <sys_name>SequencedLoggerImp</sys_name>
         <sys_package display_value="Logger" source="x_spar2_log">3a167010dbfa1340d89b596e5e96190a</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="Logger">3a167010dbfa1340d89b596e5e96190a</sys_scope>
         <sys_update_name>sys_script_include_89773050dbfa1340d89b596e5e961909</sys_update_name>
         <sys_updated_by>peter.smith</sys_updated_by>
-        <sys_updated_on>2018-06-15 14:20:08</sys_updated_on>
+        <sys_updated_on>2018-06-24 18:58:31</sys_updated_on>
     </sys_script_include>
 </record_update>

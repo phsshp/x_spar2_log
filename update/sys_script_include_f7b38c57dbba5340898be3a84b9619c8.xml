@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>package_private</access>
+        <active>true</active>
+        <api_name>x_spar2_log.LevelManager</api_name>
+        <client_callable>false</client_callable>
+        <description>Does complicated things with user preferences and properties to make it easier to set all debug properties back to info.  Builds on PrefProps to add a default property, and uses knowledge about log levels to work asymmetrically.&#13;
+&#13;
+1. If a log level property's value changes, user preferences with the previous value are set to the current value.&#13;
+2. If a log level property is deleted, its user preferences are also deleted.&#13;
+3. If the default level property does not exist when a level property changes, create it with level info.&#13;
+4. If the default property's level becomes less verbose (debug -&gt; info) set all level properties with the same previous value to the current value.  Note that each property change triggers step 1.&#13;
+5. If  the default property's level becomes more verbose (info -&gt; debug) do nothing.</description>
+        <name>LevelManager</name>
+        <script><![CDATA[var LevelManager = Class.create();
+LevelManager.prototype = (function LevelManager_proto(s) {
+	var TYPE = p.type = 'LevelManager';
+
+	var LOG_LEVEL = /x_\w+_\w+\.\w+\.log\.level$/;
+	var levelValues = {
+		error : 1,
+		warn: 2,
+		info: 3,
+		debug: 4
+	};
+
+	p.defaultLevelChanged = function defaultLevelChanged() {
+
+		var gr, or;
+		var propertySysIds = [];
+		var currentLevel = current.getValue('value');
+		var currentLevelValue = levelValues[currentLevel];
+		var previousLevel = previous.getValue('value');
+		var previousLevelValue = levelValues[previousLevel];
+		var propertySysId;
+
+		// If the default level was inserted (no previous value) then
+		// pretend the previous value was 'info'
+		if (!previousLevel) previousLevel = 'info';
+
+		// If the verbosity is decreasing then update any system
+		// or user preference that has the same previous value.
+		// This way, you can easily turn down all logging by setting
+		// the default level to debug and then lowering it one level
+		// at a time.
+		if (currentLevelValue < previousLevelValue) {
+
+			// Find our log properties
+			gr = new GlideRecord('sys_property');
+			gr.addQuery('type', 'choicelist');
+			gr.addQuery('name', 'LIKE', '.log.level');
+			gr.addQuery('choices', 'LIKE', '=debug');
+			gr.addQuery('choices', 'LIKE', '=error');
+			gr.addQuery('choices', 'LIKE', '=warn');
+			gr.addQuery('choices', 'LIKE', '=info');
+			while (gr.next) {
+				propertySysId = gr.getUniqueValue();
+				if (propertySysId.matches(LOG_LEVEL)) {
+					propertySysIds.push(gr.getValue('name'));
+				}
+			}
+
+			// Find default properties with the same previous
+			// level.  Update them to the new level.
+			// The changes to the default properties will in
+			// turn trigger the Set Level Preferencess rule which will
+			// update the user preferences.
+			gr = new GlideRecord('sys_properties');
+			gr.addQuery('sys_id', 'IN', propertySysIds.join(','));
+			gr.addQuery('value', previousLevel);
+			gr.query();
+			gr.setValue('value', currentLevel);
+			gr.updateMultiple();
+		}
+	};
+
+	p.levelChanged = function levelChanged() {
+
+		var currentName, previousName, currentValue, previousValue, nameChange, valueChange, gr, sysIds, prefGr;
+
+		// If the property name changed and the previous
+		// name was a log level name, delete the old
+		// user preferences.
+		nameChange = current.name.changes();
+		if (nameChange) {
+			previousName = previous.getValue('name');
+			if (previousName.matches(LOG_LEVEL)) {
+				prefGr = new GlideRecord('sys_user_preference');
+				prefGr.addQuery('name', name);
+				prefGr.query();
+				prefGr.deleteMultiple();
+			}
+		}
+
+		// If the current property name is a log level name,
+		// set the system preference.  If this is not a name
+		// change, also update user preferences that had
+		// the previous level.
+		currentName = current.getValue('name');
+		if (currentName.matches(LOG_LEVEL)) {
+
+			// Update or insert the system preference.
+			currentValue = current.getValue('value');
+			prefGr = new GlideRecord('sys_user_preference');
+			prefGr.addQuery('name', currentName);
+			prefGr.addQuery('system', true);
+			prefGr.addNullQuery('user');
+			prefGr.query();
+			if (prefGr.next()) {
+				prefGr.setValue('value', currentValue);
+				prefGr.update();
+			} else {
+				prefGr.initialize();
+				prefGr.setValue('name', currentName);
+				prefGr.setValue('system', true);
+				prefGr.setValue('value', currentValue);
+				prefGr.insert();
+			}
+
+			// If this is not a name change, update user preferences
+			// that match the previous level to the new level.
+			if (!nameChange) {
+				prefGr = new GlideRecord('sys_user_preference');
+				prefGr.addQuery('name', currentName);
+				prefGr.addQuery('value', previous.getValue('value'));
+				prefGr.addQuery('system', false);
+				prefGr.addNotNullQuery('user');
+				prefGr.query();
+				while (gr.next()) {
+					prefGr.setValue('value', currentValue);
+					prefGr.update();
+				}
+			}
+		}
+	};
+
+
+	p.initialize = function initialize(current, previous) {
+		this.current = current;
+		this.previous = previous;
+	};
+})(LevelManager);]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>peter.smith</sys_created_by>
+        <sys_created_on>2018-06-24 18:38:01</sys_created_on>
+        <sys_id>f7b38c57dbba5340898be3a84b9619c8</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>LevelManager</sys_name>
+        <sys_package display_value="Logger" source="x_spar2_log">3a167010dbfa1340d89b596e5e96190a</sys_package>
+        <sys_policy>read</sys_policy>
+        <sys_scope display_value="Logger">3a167010dbfa1340d89b596e5e96190a</sys_scope>
+        <sys_update_name>sys_script_include_f7b38c57dbba5340898be3a84b9619c8</sys_update_name>
+        <sys_updated_by>peter.smith</sys_updated_by>
+        <sys_updated_on>2018-06-24 18:38:01</sys_updated_on>
+    </sys_script_include>
+</record_update>

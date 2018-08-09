@@ -11,33 +11,43 @@
 Logger.prototoype = (function Logger_proto(s) {
 	var p = {};
 	var TYPE = 'Logger';
+	var APP = 'x_spar2_log';
 
 	// Static cache.  You'll get the same logger if this class is not unloaded.
 	var loggers = {};  // One logger per loggerName
 
 	// Big cutoff switch
 	var disabled = (function() {
-		var name = gs.getCurrentScopeName() + '.Logger.log.disabled';
+		var name = APP + '.Logger.log.disabled';
 		var prop = gs.getProperty(name, 'false');
 		return (prop === 'true');
 	})();
 
+	// Global default level
+	var defaultLevel = (function() {
+		var name = APP + '.Logger.log.default_level';
+		var prop = gs.getProperty(name, 'info');
+		return prop;
+	})();
+
 	s.getLogger = function getLogger(loggerName, override) {
 		var pp, loggerKey, cachedLogger;
+		var scope = gs.getCallerScopeName();
 
 		if (disabled) return gs;
 
 		loggerName = loggerName || TYPE;
-		pp = new PrefProps(gs.getCallerScopeName(), loggerName + '.log');
-		loggerKey = pp.getPrefix().slice(0, -1);
+		pp = new PrefProps(scope, loggerName + '.log');
+		loggerKey = pp.getPrefix();
 
 		cachedLogger = loggers[loggerKey];
 		if (!cachedLogger) {
-			cachedLogger = new SequencedLoggerImp({
-				loggerName:  loggerName,
-				loggerKey:   loggerKey,
-				prefProps:   pp,
-				override:    override // jig for testing
+			cachedLogger = new x_spar2_log.SequencedLoggerImp({
+				loggerName:   loggerName,
+				loggerKey:    loggerKey,
+				prefProps:    pp,
+				defaultLevel: defaultLevel,
+				override:     override // jig for testing
 			});
 			loggers[loggerKey] = cachedLogger;
 		}
@@ -51,7 +61,7 @@ Logger.prototoype = (function Logger_proto(s) {
 
 		loggerName = loggerName || TYPE;
 		pp = new PrefProps(gs.getCallerScopeName(), loggerName + '.log');
-		loggerKey = pp.getPrefix().slice(0, -1);
+		loggerKey = pp.getPrefix();
 
 		delete loggers[loggerKey];
 	};
@@ -92,7 +102,7 @@ Logger.prototoype = (function Logger_proto(s) {
 Logger.test = function test() {
 	var SLTEST = 'LoggerTest';
 
-	var	scopePrefix = getScopePrefix(gs.getCallerScopeName());
+	var	scopePrefix = PrefProps.getScopePrefix(gs.getCallerScopeName());
 	var	loggerName = SLTEST;
 	var	prefProps = scopePrefix + 'sequenced_logger.' + loggerName + '.';
 
@@ -101,7 +111,7 @@ Logger.test = function test() {
 
 	var log = sl.getLogger(SLTEST);
 	gs.info('Logger is gs: {0}', log === gs);
-	sl.flushLogger(SLTEST);
+	sl.resetLogger(SLTEST);
 
 	gs.getUser().savePreference(prefProps + 'enabled', 'true');
 	log = sl.getLogger(SLTEST);
@@ -146,13 +156,13 @@ Logger.test = function test() {
         <sys_created_by>peter.smith</sys_created_by>
         <sys_created_on>2018-06-15 13:55:33</sys_created_on>
         <sys_id>9246b410dbfa1340d89b596e5e961972</sys_id>
-        <sys_mod_count>2</sys_mod_count>
+        <sys_mod_count>12</sys_mod_count>
         <sys_name>Logger</sys_name>
         <sys_package display_value="Logger" source="x_spar2_log">3a167010dbfa1340d89b596e5e96190a</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="Logger">3a167010dbfa1340d89b596e5e96190a</sys_scope>
         <sys_update_name>sys_script_include_9246b410dbfa1340d89b596e5e961972</sys_update_name>
         <sys_updated_by>peter.smith</sys_updated_by>
-        <sys_updated_on>2018-06-15 14:19:52</sys_updated_on>
+        <sys_updated_on>2018-07-03 14:14:42</sys_updated_on>
     </sys_script_include>
 </record_update>

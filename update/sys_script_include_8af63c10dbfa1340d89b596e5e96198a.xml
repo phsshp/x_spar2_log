@@ -5,10 +5,22 @@
         <active>true</active>
         <api_name>x_spar2_log.PrefProps</api_name>
         <client_callable>false</client_callable>
-        <description>Read values from User Preferences first, then from System Properties.  Supports user-specific configuration.</description>
+        <description>Manage configuration values as both user preferences and properties.  &#13;
+&#13;
+Read values from User Preferences first, then from System Properties.  Supports user-specific log configuration.&#13;
+&#13;
+1. If the user preference is defined, use its value.&#13;
+2. If not, look for the property.&#13;
+3. If the property is defined, use its value.&#13;
+4. If the user preference is not defined and the property is, define the preference with the property's value&#13;
+3. If the property is not defined:&#13;
+    a. Use the value obtained from the user preference&#13;
+    b. If the user preference was not defined, use the default value.&#13;
+    c. Define the property with that value.</description>
         <name>PrefProps</name>
         <script><![CDATA[var PrefProps = Class.create();
 PrefProps.prototype = (function ProfProps_proto(s) {
+	'strict mode';
 	var TYPE = 'PrefProps';
 	var p = {};
 
@@ -20,11 +32,12 @@ PrefProps.prototype = (function ProfProps_proto(s) {
 	}
 	s.getScopePrefix = getScopePrefix;
 
-	function initialize(scope, middle) {
+	function initialize(scope, middle, globalPropertyName) {
 		var prefix;
-
+		var that = this;
+		
 		scope = scope || gs.getCallerScopeName();
-		scope = getScopePrefix(gs.getCallerScopeName());
+		scope = getScopePrefix(scope);
 
 		if (middle !== undefined) {
 			prefix = scope + middle + '.';
@@ -32,24 +45,33 @@ PrefProps.prototype = (function ProfProps_proto(s) {
 			prefix = scope;
 		}
 
-		this.getPrefix = function getPrefix() { return prefix; };
+		that.getPrefix = function getPrefix() { return prefix.slice(0, -1); };
 
 		function getName(name) {
 			return prefix + name;
 		}
-		
+
+		this.setSystemPreference = function setSystemPreference(name, value) {
+			var gr = new GlideRecord('sys_user_preference');
+			gr.initialize();
+		};
+
 		// Get property or user preference.
 		this.getValue = function getValue(name, defaultValue) {
-			var fullName, user, value;
+			var fullName, user, userPrefValue, propertyValue, value;
 
 			fullName = getName(name);
 
 			user = gs.getUser();
-			value = user.getPreference(fullName);
-			if (value === null) {
-				value = gs.getProperty(fullName, defaultValue);
-				user.savePreference(fullName, value);
-			}
+			userPrefValue = user.getPreference(fullName);
+
+			propertyValue = gs.getProperty(fullName);
+			if (!propertyValue) {
+				propertyValue = userPrefValue || defaultValue;
+				gs.setProperty(fullName, propertyValue);
+			} 
+
+			value = userPrefValue || propertyValue; 
 			return value;
 		};
 
@@ -62,13 +84,13 @@ PrefProps.prototype = (function ProfProps_proto(s) {
         <sys_created_by>peter.smith</sys_created_by>
         <sys_created_on>2018-06-15 13:57:23</sys_created_on>
         <sys_id>8af63c10dbfa1340d89b596e5e96198a</sys_id>
-        <sys_mod_count>1</sys_mod_count>
+        <sys_mod_count>12</sys_mod_count>
         <sys_name>PrefProps</sys_name>
         <sys_package display_value="Logger" source="x_spar2_log">3a167010dbfa1340d89b596e5e96190a</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="Logger">3a167010dbfa1340d89b596e5e96190a</sys_scope>
         <sys_update_name>sys_script_include_8af63c10dbfa1340d89b596e5e96198a</sys_update_name>
         <sys_updated_by>peter.smith</sys_updated_by>
-        <sys_updated_on>2018-06-15 14:20:02</sys_updated_on>
+        <sys_updated_on>2018-08-09 01:45:21</sys_updated_on>
     </sys_script_include>
 </record_update>
