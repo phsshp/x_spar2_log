@@ -3,7 +3,7 @@
     <sys_script_include action="INSERT_OR_UPDATE">
         <access>public</access>
         <active>true</active>
-        <api_name>x_spar2_log.Logger</api_name>
+        <api_name>x_maog_log.Logger</api_name>
         <client_callable>false</client_callable>
         <description>Provide strictly sequenced logs layered on the default GlideSystem logging function.</description>
         <name>Logger</name>
@@ -11,7 +11,7 @@
 Logger.prototoype = (function Logger_proto(s) {
 	var p = {};
 	var TYPE = 'Logger';
-	var APP = 'x_spar2_log';
+	var APP = 'x_maog_log';
 
 	// Static cache.  You'll get the same logger if this class is not unloaded.
 	var loggers = {};  // One logger per loggerName
@@ -42,7 +42,7 @@ Logger.prototoype = (function Logger_proto(s) {
 
 		cachedLogger = loggers[loggerKey];
 		if (!cachedLogger) {
-			cachedLogger = new x_spar2_log.SequencedLoggerImp({
+			cachedLogger = new x_maog_log.SequencedLoggerImp({
 				loggerName:   loggerName,
 				loggerKey:    loggerKey,
 				prefProps:    pp,
@@ -158,7 +158,7 @@ Logger.test = function test() {
         <sys_id>9246b410dbfa1340d89b596e5e961972</sys_id>
         <sys_mod_count>12</sys_mod_count>
         <sys_name>Logger</sys_name>
-        <sys_package display_value="Logger" source="x_spar2_log">3a167010dbfa1340d89b596e5e96190a</sys_package>
+        <sys_package display_value="Logger" source="x_maog_log">3a167010dbfa1340d89b596e5e96190a</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="Logger">3a167010dbfa1340d89b596e5e96190a</sys_scope>
         <sys_update_name>sys_script_include_9246b410dbfa1340d89b596e5e961972</sys_update_name>

@@ -3,7 +3,7 @@
     <sys_script_include action="INSERT_OR_UPDATE">
         <access>public</access>
         <active>true</active>
-        <api_name>x_spar2_log.ObjectDump</api_name>
+        <api_name>x_maog_log.ObjectDump</api_name>
         <client_callable>false</client_callable>
         <description>Dumps an object as a string or to a line output function.  Implemented as a wrapper object with a toString() method.&#13;
 &#13;
@@ -310,7 +310,7 @@ ObjectDump.prototype = (function ObjectDump_proto() {
         <sys_id>a4c7b050dbfa1340d89b596e5e961999</sys_id>
         <sys_mod_count>1</sys_mod_count>
         <sys_name>ObjectDump</sys_name>
-        <sys_package display_value="Logger" source="x_spar2_log">3a167010dbfa1340d89b596e5e96190a</sys_package>
+        <sys_package display_value="Logger" source="x_maog_log">3a167010dbfa1340d89b596e5e96190a</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="Logger">3a167010dbfa1340d89b596e5e96190a</sys_scope>
         <sys_update_name>sys_script_include_a4c7b050dbfa1340d89b596e5e961999</sys_update_name>

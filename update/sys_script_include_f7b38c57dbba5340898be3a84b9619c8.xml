@@ -3,7 +3,7 @@
     <sys_script_include action="INSERT_OR_UPDATE">
         <access>package_private</access>
         <active>true</active>
-        <api_name>x_spar2_log.LevelManager</api_name>
+        <api_name>x_maog_log.LevelManager</api_name>
         <client_callable>false</client_callable>
         <description>Does complicated things with user preferences and properties to make it easier to set all debug properties back to info.  Builds on PrefProps to add a default property, and uses knowledge about log levels to work asymmetrically.&#13;
 &#13;
@@ -147,7 +147,7 @@ LevelManager.prototype = (function LevelManager_proto(s) {
         <sys_id>f7b38c57dbba5340898be3a84b9619c8</sys_id>
         <sys_mod_count>0</sys_mod_count>
         <sys_name>LevelManager</sys_name>
-        <sys_package display_value="Logger" source="x_spar2_log">3a167010dbfa1340d89b596e5e96190a</sys_package>
+        <sys_package display_value="Logger" source="x_maog_log">3a167010dbfa1340d89b596e5e96190a</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="Logger">3a167010dbfa1340d89b596e5e96190a</sys_scope>
         <sys_update_name>sys_script_include_f7b38c57dbba5340898be3a84b9619c8</sys_update_name>
